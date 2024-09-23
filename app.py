@@ -1,22 +1,18 @@
 
 from flask import Flask, current_app, jsonify, request
 import pandas as pd
-import uuid
 import io
 
 
 
 app = Flask(__name__)
 
-#fRevenue=0.0
-#fExpenses=0.0
-#fNetRevenue=0.0
 
 def reset_stats():
     current_app.fRevenue = 0.0
     current_app.fExpenses = 0.0
     current_app.fNetRevenue = 0.0
-    print("In reset stats\n")
+    
 
 
 
@@ -27,7 +23,6 @@ def list_usage():
 
 @app.route('/reset')
 def reset():
-    #with app.app_context():
     reset_stats()
     return jsonify({"Message": "Transaction data reset"}), 200
 

@@ -1,7 +1,17 @@
-# simple curl test of 2 endpoints assuming default port for Flask, adjust as needed
-curl -X POST http://127.0.0.1:5000/transactions  -F "data=@data.csv"
-echo
-curl http://127.0.0.1:5000/report
+# simple curl test of 2 endpoints 
 
+# Reset summary data
+echo curl -i  http://127.0.0.6:5005/reset
 
-#
+curl -i  http://127.0.0.6:5005/reset
+
+#load data
+echo curl -i -X POST -H "Content-Type: multipart/form-data" -F "file=@%1" http://127.0.0.6:5005/transactions
+
+curl -i -X POST -H "Content-Type: multipart/form-data" -F "file=@%1" http://127.0.0.6:5005/transactions
+
+# check results
+echo curl -i  http://127.0.0.6:5005/report
+
+curl -i  http://127.0.0.6:5005/report
+
