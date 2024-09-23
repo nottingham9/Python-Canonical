@@ -4,38 +4,21 @@ import pandas as pd
 import uuid
 import io
 
-
-tasks = [
-    {
-        'id': uuid.uuid4().hex,
-        'title': 'Buy groceries',
-        'description': 'Milk, Cheese, Pizza, Fruits',
-        'completed': False
-    },
-    {
-        'id': uuid.uuid4().hex,
-        'title': 'Learn Python',
-        'description': 'Learn how to create a web service with Python',
-        'completed': True
-    }
-]
-
-
 app = Flask(__name__)
 
 @app.route('/')
 def hello_world():
-    return jsonify({'tasks': tasks})
-    #return 'Hello, World3!'
+   #return jsonify({'tasks': tasks})
+    return 'Hello, World3!'
 
+dataStore = pd.DataFrame(columns=['Date', 'Type', 'Amount($)', 'Memo'])
+headers = ['Date', 'Type', 'Amount($)', 'Memo']
 
-
-
-@app.route('/tasks', methods=['GET'])
+@app.route('/report', methods=['GET'])
 def get_tasks():
-    return jsonify({'tasks': tasks})
+    return dataStore.to_json(orient='records')
 
-@app.route('/tasks', methods=['POST'])
+@app.route('/transactions', methods=['POST'])
 def upload_file():
     if 'file' not in request.files:
         return jsonify({"error": "No file part; I need files"}), 400
@@ -48,14 +31,13 @@ def upload_file():
     if file:
         # Read the file into a pandas DataFrame
         stream = io.StringIO(file.stream.read().decode("UTF8"), newline=None)
-        column 
-        csv_input = pd.read_csv(stream, header=none)
-        expense_rows=csv_input
+        csv_input = pd.read_csv(stream, header=None, names=headers)
         
         # Process the DataFrame (example: print the first few rows)
-        print(csv_input.head())
-        csv_input.
-        
+        #print(csv_input.head())
+        global dataStore
+        dataStore = pd.concat([dataStore, csv_input], ignore_index=True)
+        print(dataStore)
         return jsonify({"message": "File successfully processed"}), 200
 
 #def create_task():
@@ -114,3 +96,6 @@ df = pd.DataFrame({
 # Filter rows where Sales > 300
 filtered_df = df[df['Sales'] > 300]
 print(filtered_df)
+
+
+
