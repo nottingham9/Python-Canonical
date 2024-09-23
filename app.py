@@ -1,116 +1,92 @@
 
-from flask import Flask, jsonify, request
+from flask import Flask, current_app, jsonify, request
 import pandas as pd
 import uuid
 import io
 
 
-tasks = [
-    {
-        'id': uuid.uuid4().hex,
-        'title': 'Buy groceries',
-        'description': 'Milk, Cheese, Pizza, Fruits',
-        'completed': False
-    },
-    {
-        'id': uuid.uuid4().hex,
-        'title': 'Learn Python',
-        'description': 'Learn how to create a web service with Python',
-        'completed': True
-    }
-]
-
 
 app = Flask(__name__)
 
+#fRevenue=0.0
+#fExpenses=0.0
+#fNetRevenue=0.0
+
+def reset_stats():
+    current_app.fRevenue = 0.0
+    current_app.fExpenses = 0.0
+    current_app.fNetRevenue = 0.0
+    print("In reset stats\n")
+
+
+
+
 @app.route('/')
-def hello_world():
-    return jsonify({'tasks': tasks})
-    #return 'Hello, World3!'
+def list_usage():
+    return 'ToDo: Add usage instructions'
+
+@app.route('/reset')
+def reset():
+    #with app.app_context():
+    reset_stats()
+    return jsonify({"Message": "Transaction data reset"}), 200
+
+@app.route('/report', methods=['GET'])
+def report_stats():
+    with app.app_context():
+        return jsonify(
+                { "gross-revenue": current_app.fRevenue,
+                "expenses": current_app.fExpenses,
+                "net-revenue": current_app.fRevenue-current_app.fExpenses
+                }
+            ),200
+        
 
 
-
-
-@app.route('/tasks', methods=['GET'])
-def get_tasks():
-    return jsonify({'tasks': tasks})
-
-@app.route('/tasks', methods=['POST'])
+@app.route('/transactions', methods=['POST'])
 def upload_file():
-    if 'file' not in request.files:
-        return jsonify({"error": "No file part; I need files"}), 400
-    
-    file = request.files['file']
-    
-    if file.filename == '':
-        return jsonify({"error": "No selected file"}), 400
-    
-    if file:
-        # Read the file into a pandas DataFrame
-        stream = io.StringIO(file.stream.read().decode("UTF8"), newline=None)
-        column 
-        csv_input = pd.read_csv(stream, header=none)
-        expense_rows=csv_input
+    with app.app_context():
+        if 'file' not in request.files:
+            return jsonify({"error": "No file part; Please provide expense file"}), 400
         
-        # Process the DataFrame (example: print the first few rows)
-        print(csv_input.head())
-        csv_input.
+        file = request.files['file']
         
-        return jsonify({"message": "File successfully processed"}), 200
+        if file:
+            # Read the file into a pandas DataFrame
+            stream = io.StringIO(file.stream.read().decode("UTF8"), newline=None)
+            dataStore=  pd.read_csv(stream, header=None)
+            
+            dataStore_cleanedup=dataStore[dataStore[0].notna() & (dataStore[0]!='' )
+                                        & dataStore[1].notna() & (dataStore[1]!='')
+                                        & dataStore[2].notna() & (dataStore[2]!='')
+                                        ]
+            
+            dataStore_cleanedup.loc[:, 1] = dataStore_cleanedup[1].str.strip()
+            uploadSummary=dataStore_cleanedup.groupby(1)[2].sum()
+            
+            batchRevenue= uploadSummary.get('Income',0) 
+            current_app.fRevenue+= batchRevenue
+            batchExpense=uploadSummary.get('Expense',0)
+            current_app.fExpenses+=batchExpense
 
-#def create_task():
-#    new_task = {
-#        'id': uuid.uuid4().hex,
-#        'title': request.json['title'],
-#       'description': 'xyz' , #request.json['description'],
-#       'completed': 'yes' #request.json.get('completed', False)
-#    }
-#    tasks.append(new_task)
-#    return jsonify({'task': new_task})
+            return jsonify({"message": "Data processed succefully",
+                            "Revenue_from_curent_upload= " : batchRevenue,
+                            "Expense_from_current_upload" : batchExpense,
+                            "Net_income_from_current_upload" : batchRevenue-batchExpense,
+                            "Total_revenue_so_far" : current_app.fRevenue,
+                            "Total_expenses_so_far": current_app.fExpenses,
+                            "Net_income_so_far": current_app.fRevenue-current_app.fExpenses
+            })
+            
 
-@app.route('/tasks/<string:task_id>', methods=['GET'])
-def get_task(task_id):
-    task = [task for task in tasks if task['id'] == task_id]
-    if len(task) == 0:
-        return jsonify({'error': 'Task not found'})
-    return jsonify({'task': task[0]})
-
-@app.route('/tasks/<string:task_id>', methods=['PUT'])
-def update_task(task_id):
-    task = [task for task in tasks if task['id'] == task_id]
-    if len(task) == 0:
-        return jsonify({'error': 'Task not found'})
-    task[0]['title'] = request.json.get('title', task[0]['title'])
-    task[0]['description'] = request.json.get('description', task[0]['description'])
-    task[0]['completed'] = request.json.get('completed', task[0]['completed'])
-    return jsonify({'task': task[0]})
-
-@app.route('/tasks/<string:task_id>', methods=['DELETE'])
-def delete_task(task_id):
-    task = [task for task in tasks if task['id'] == task_id]
-    if len(task) == 0:
-        return jsonify({'error': 'Task not found'})
-    tasks.remove(task[0])
-    return jsonify({'result': 'Task deleted'})  
 
 
 if __name__ == '__main__':
+    with app.app_context():
+        reset_stats()  # Initialize stats
     app.run(host="127.0.0.6", port=5005, debug=True)
 
 
 
-# c:\Windows\System32\curl -X GET http://127.0.0.5:5005/tasks
-# c:\Windows\System32\curl -X POST http://127.0.0.5:5005/tasks -H "Content-Type:application/json" --data '{\"title\" : \"t6\"}'
+# cURL pattern that works C:\Windows\System32\curl -i -X POST -H "Content-Type: multipart/form-data" -F "file=@data.csv" http://127.0.0.6:5005/transactions
 
-# Sample DataFrame
-df = pd.DataFrame({
-    'Date': ['2020-07-11', '2020-09-23', '2020-04-02'],
-    'Region': ['East', 'North', 'South'],
-    'Type': ["Children's Clothing", "Children's Clothing", "Women's Clothing"],
-    'Units': [18, 14, 17],
-    'Sales': [306, 448, 425]
-})
-
-# Filter rows where Sales > 300
-filtered_df = df[df['Sales'] > 300]
-print(filtered_df)
